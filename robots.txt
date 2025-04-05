@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Main pages
+Allow: /quiz
+Allow: /calculator
+Allow: /about
+Allow: /advice
+Allow: /privacy-policy
+Allow: /terms-of-use
+
+Disallow: /*share=*
+
+Sitemap: https://checkredflag.com/sitemap.xml
