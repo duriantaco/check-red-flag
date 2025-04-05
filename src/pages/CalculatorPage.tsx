@@ -41,6 +41,11 @@ const CalculatorPage = () => {
   const [adultPopulation, setAdultPopulation] = useState<number>(258.3);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState<boolean>(false);
 
+  window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+  });
+
   useEffect(() => {
     const selectedRegion = regionOptions.find((r) => r.value === region);
     if (selectedRegion) {

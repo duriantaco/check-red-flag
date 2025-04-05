@@ -55,6 +55,11 @@ const RedFlagApp = () => {
   const [viewMode, setViewMode] = useState<'edit' | 'shared'>('edit');
   const [customTraits, setCustomTraits] = useState<Record<string, CustomTraitDefinition[]>>({});
 
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   useEffect(() => {
     const hash = window.location.hash;
     if (hash && hash.startsWith('#share=')) {

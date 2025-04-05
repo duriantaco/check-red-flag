@@ -20,6 +20,11 @@ const animationStyles = `
 const AdvicePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'social' | 'dating' | 'breakup'>('dating');
 
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   const getMetaTitle = () => {
     switch (activeTab) {
       case 'dating':

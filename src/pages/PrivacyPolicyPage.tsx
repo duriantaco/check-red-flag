@@ -5,6 +5,12 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const PrivacyPolicyPage = () => {
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('en-US', { 
     year: 'numeric', 

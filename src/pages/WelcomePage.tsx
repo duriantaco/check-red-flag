@@ -6,6 +6,11 @@ import { Helmet } from 'react-helmet-async';
 const WelcomePage = () => {
   const backgroundRef = useRef<HTMLDivElement>(null);
   
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!backgroundRef.current) return;

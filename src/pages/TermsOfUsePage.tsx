@@ -5,6 +5,11 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 
 const TermsOfUsePage = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString('en-US', { 
     year: 'numeric', 
@@ -168,12 +173,7 @@ const TermsOfUsePage = () => {
             <section id="contact">
               <h2 className="text-2xl font-semibold text-white mb-3">Contact Us</h2>
               <p className="text-gray-300 leading-relaxed">
-                If you have any questions or concerns about these Terms of Use or our relationship assessment tool, please contact us at:
-              </p>
-              <p className="text-gray-300 mt-2">
-                <a href="mailto:terms@checkredflag.com" className="text-blue-400 hover:underline">
-                  terms@checkredflag.com
-                </a>
+                If you have any questions or concerns about these Terms of Use or our relationship assessment tool, please contact us at our github
               </p>
             </section>
 

@@ -16,6 +16,11 @@ const FAQPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+  });
+
   const toggleFAQ = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
@@ -437,15 +442,6 @@ const FAQPage = () => {
                 Important information about the purpose and limitations of our tool
               </p>
             </Link>
-          </div>
-          <div className="text-center mt-6">
-            <a 
-              href="mailto:contact@checkredflag.com" 
-              className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg text-white transition-all shadow-lg"
-            >
-              <MessageSquare size={18} className="mr-2" />
-              <span className="font-medium">Contact Our Team</span>
-            </a>
           </div>
         </div>
       </main>

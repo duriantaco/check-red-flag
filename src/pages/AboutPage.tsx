@@ -43,6 +43,11 @@ const animationStyles = `
 const AboutPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'about' | 'disclaimer' | 'faq' | 'contact'>('about');
 
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+});
+
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const tab = queryParams.get('tab');
