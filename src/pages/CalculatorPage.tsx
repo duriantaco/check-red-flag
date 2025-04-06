@@ -30,7 +30,6 @@ interface RegionOption {
 }
 
 const CalculatorPage = () => {
-  // Region options
   const regionOptions: RegionOption[] = [
     { label: 'United States', value: 'us', population: 333.3 },
     { label: 'Global', value: 'global', population: 8000 },
@@ -41,7 +40,6 @@ const CalculatorPage = () => {
     { label: 'Africa', value: 'africa', population: 1400 },
   ];
 
-  // State variables
   const [region, setRegion] = useState<string>('us');
   const [adultPopulation, setAdultPopulation] = useState<number>(258.3);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState<boolean>(false);
@@ -50,7 +48,6 @@ const CalculatorPage = () => {
   const [showResults, setShowResults] = useState<boolean>(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState<{ [key: string]: boolean }>({});
 
-  // Initialize criteria state
   const [criteria, setCriteria] = useState<Criterion[]>([
     {
       name: 'Race/Ethnicity',
@@ -245,7 +242,6 @@ const CalculatorPage = () => {
     },
   ]);
 
-  // Result states
   const [probability, setProbability] = useState<number>(100);
   const [peopleCount, setPeopleCount] = useState<number>(adultPopulation * 1000000);
   const [realDatingPoolSize, setRealDatingPoolSize] = useState<number>(0);
@@ -253,7 +249,6 @@ const CalculatorPage = () => {
   const [confidenceLevel, setConfidenceLevel] = useState<string>('moderate');
   const [marginOfError, setMarginOfError] = useState<number>(0);
   
-  // Group criteria for better organization
   const criteriaGroups = [
     {
       id: 'appearance',
@@ -272,7 +267,6 @@ const CalculatorPage = () => {
     }
   ];
 
-  // Update adult population based on selected region
   useEffect(() => {
     const selectedRegion = regionOptions.find((r) => r.value === region);
     if (selectedRegion) {
@@ -280,7 +274,6 @@ const CalculatorPage = () => {
     }
   }, [region]);
 
-  // Update criteria options based on gender preference
   useEffect(() => {
     setCriteria((prevCriteria) =>
       prevCriteria.map((criterion) => {
@@ -296,7 +289,6 @@ const CalculatorPage = () => {
     );
   }, [lookingForMale]);
 
-  // Calculate race correlations for traits
   const calculateRaceCorrelations = (race: string, trait: string, percentage: number): number => {
     if (race === 'any' || trait === 'any') return percentage;
 
@@ -667,7 +659,6 @@ const CalculatorPage = () => {
     return `top ${Math.round(100 - probability)}%`;
   };
 
-  // Get confidence level color
   const getConfidenceLevelColor = () => {
     switch (confidenceLevel) {
       case 'high':
@@ -772,9 +763,7 @@ const CalculatorPage = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Form container */}
           <div className="w-full lg:w-3/5 space-y-6">
-            {/* Disclaimer */}
             <div className="rounded-xl overflow-hidden shadow-md bg-gradient-to-r from-yellow-900/20 to-yellow-800/10 border border-yellow-700/30">
               <div className="p-4 flex items-start gap-3">
                 <div className="flex-shrink-0 mt-1 text-yellow-300">
@@ -816,10 +805,8 @@ const CalculatorPage = () => {
               </div>
             </div>
 
-            {/* Basic settings */}
             <div className="p-5 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50 shadow-lg">
               <div className="flex flex-col md:flex-row gap-4 md:items-center md:gap-6">
-                {/* Gender preference */}
                 <div className="flex-1">
                   <h2 className="text-base font-medium mb-2 text-white">Gender Preference</h2>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -846,7 +833,6 @@ const CalculatorPage = () => {
                   </div>
                 </div>
 
-                {/* Region selection */}
                 <div className="flex-1">
                   <h2 className="text-base font-medium mb-2 text-white">Region</h2>
                   <select
@@ -938,7 +924,6 @@ const CalculatorPage = () => {
                                 ))}
                               </select>
                               
-                              {/* Selected option description */}
                               {criterion.selected && criterion.selected !== 'any' && (
                                 <div className="mt-2 px-2 py-1 text-xs bg-gray-800/50 rounded text-gray-400">
                                   {criterion.options.find((o) => o.value === criterion.selected)?.description}
@@ -971,14 +956,12 @@ const CalculatorPage = () => {
             </div>
           </div>
 
-          {/* Results panel (fixed on desktop, modal on mobile) */}
           <div className={`
             fixed inset-0 z-50 lg:static lg:z-auto
             ${showResults ? 'flex' : 'hidden lg:flex'}
             flex-col bg-gray-900/95 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none
             lg:w-2/5 p-4 lg:p-0 overflow-auto
           `}>
-            {/* Mobile close button */}
             <button 
               onClick={() => setShowResults(false)}
               className="self-end p-2 lg:hidden text-gray-400 hover:text-white"
@@ -1045,7 +1028,6 @@ const CalculatorPage = () => {
                 </div>
               </div>
 
-              {/* Warning messages */}
               {peopleCount < 10000 && (
                 <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-700/30">
                   <p className="text-yellow-300 text-sm">
