@@ -23,7 +23,7 @@ interface ProfileSidebarProps {
   totalTraitsCount: number;
 }
 
-const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
+const ProfileSidebar: React.FC<ProfileSidebarProps> = React.memo(({
   profileName,
   currentProfile,
   profiles,
@@ -210,6 +210,6 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default ProfileSidebar;

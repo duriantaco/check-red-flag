@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Profile {
   [key: string]: Record<string, string>;
@@ -59,10 +59,10 @@ export function useProfileManagement() {
     setTraitSelections(profiles[profileId] || {});
   };
 
-  const resetSelections = () => {
+  const resetSelections = useCallback(() => {
     setTraitSelections({});
     setProfiles(prev => ({ ...prev, [currentProfile]: {} }));
-  };
+  }, [currentProfile]);
 
   const updateTraitSelection = (traitId: string, value: string) => {
     setTraitSelections(prev => ({

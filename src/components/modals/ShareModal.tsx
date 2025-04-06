@@ -1,68 +1,107 @@
-import React from 'react';
-import { Share2, Copy, Check, Download } from 'lucide-react';
 
-interface ShareModalProps {
-  shareableLink: string;
-  copied: boolean;
-  setShowShareModal: (show: boolean) => void;
-  copyToClipboard: () => void;
-  downloadAsImage: () => void;
-}
+import React, { useEffect, useRef } from 'react';
+import { X, Copy, Check, Download } from 'lucide-react';
+import { ShareModalProps } from '../../types'; 
 
 const ShareModal: React.FC<ShareModalProps> = ({
   shareableLink,
   copied,
   setShowShareModal,
   copyToClipboard,
-  downloadAsImage
+  downloadAsImage,
+  isMobile = false
 }) => {
+  const linkRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (linkRef.current) {
+      linkRef.current.select();
+    }
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowShareModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [setShowShareModal]);
+
+  const modalClasses = isMobile
+    ? "fixed inset-0 bg-black/75 z-50 flex flex-col justify-end"
+    : "fixed inset-0 bg-black/75 z-50 flex items-center justify-center";
+
+  const contentClasses = isMobile
+    ? "bg-gray-800 border border-gray-700 rounded-t-xl p-4 animate-slide-up w-full max-h-[80vh] overflow-auto"
+    : "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full animate-fade-in";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4">
-          <h3 className="text-xl font-bold flex items-center">
-            <Share2 size={20} className="mr-2" />
-            Share Your Results
-          </h3>
+    <div className={modalClasses} onClick={() => setShowShareModal(false)}>
+      <div 
+        className={contentClasses} 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Share Your Assessment</h2>
+          <button
+            className="p-1 hover:bg-gray-700 rounded-full"
+            onClick={() => setShowShareModal(false)}
+            aria-label="Close modal"
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="p-6">
-          <p className="text-gray-300 mb-4">
-            Share this link with friends to show them your assessment:
+        
+        <div className="mb-6">
+          <p className="text-gray-300 mb-3">
+            Share this link for others to view your relationship assessment:
           </p>
-          
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <input
+              ref={linkRef}
               type="text"
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={shareableLink}
               readOnly
-              className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-l-lg focus:outline-none text-white text-sm overflow-hidden"
             />
             <button
               onClick={copyToClipboard}
-              className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-r-lg transition-colors"
+              className="min-w-[44px] h-11 flex items-center justify-center bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
+              aria-label={copied ? "Copied" : "Copy to clipboard"}
             >
               {copied ? <Check size={20} /> : <Copy size={20} />}
             </button>
           </div>
-          
-          <div className="mt-6 pt-4 border-t border-gray-700">
-            <div className="flex justify-between">
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-              
-              <button
-                onClick={downloadAsImage}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center"
-              >
-                <Download size={16} className="mr-1" />
-                Download Image
-              </button>
-            </div>
-          </div>
+          {copied && (
+            <p className="mt-2 text-sm text-green-400">
+              Link copied to clipboard!
+            </p>
+          )}
+        </div>
+        
+        <div className="mb-4">
+          <button
+            onClick={downloadAsImage}
+            className="w-full flex items-center justify-center gap-2 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            <Download size={20} />
+            <span>Download as Image</span>
+          </button>
+          <p className="mt-2 text-sm text-gray-400">
+            Get a shareable image of your assessment results.
+          </p>
+        </div>
+        
+        <div className="text-center">
+          <button
+            onClick={() => setShowShareModal(false)}
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

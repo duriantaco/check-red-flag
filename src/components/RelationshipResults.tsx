@@ -9,10 +9,15 @@ interface RelationshipResultsProps {
 
 const RelationshipResults: React.FC<RelationshipResultsProps> = ({ selections }) => {
   const { redScore, greenScore, netScore, redTraits, greenTraits } = useMemo(() => 
-    calculateRelationshipScore(selections), [selections]);
+    calculateRelationshipScore(selections), 
+    [JSON.stringify(selections)]
+  );
   
-  const { level: riskLevel, message: riskMessage, color: _ } = calculateRiskLevel(redScore);
-
+  const { level: riskLevel, message: riskMessage, color: _ } = useMemo(() => 
+    calculateRiskLevel(redScore), 
+    [redScore]
+  );
+  
   const hasRatedTraits = Object.keys(selections).length > 0;
 
   const getTraitDetails = (traitId: string): { category: string; traitDef: TraitDefinition | undefined } => {

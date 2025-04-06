@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
+import { ChevronDown, ChevronUp, Info, RefreshCw, Sliders, X } from 'lucide-react';
+
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { Helmet } from 'react-helmet-async';
 
 interface Criterion {
   name: string;
+  icon?: string;
   options: Option[];
   selected: string | null;
   maleOptions?: Option[];
@@ -27,6 +30,7 @@ interface RegionOption {
 }
 
 const CalculatorPage = () => {
+  // Region options
   const regionOptions: RegionOption[] = [
     { label: 'United States', value: 'us', population: 333.3 },
     { label: 'Global', value: 'global', population: 8000 },
@@ -37,22 +41,16 @@ const CalculatorPage = () => {
     { label: 'Africa', value: 'africa', population: 1400 },
   ];
 
+  // State variables
   const [region, setRegion] = useState<string>('us');
   const [adultPopulation, setAdultPopulation] = useState<number>(258.3);
   const [disclaimerExpanded, setDisclaimerExpanded] = useState<boolean>(false);
+  const [lookingForMale, setLookingForMale] = useState<boolean>(true);
+  const [activeSection, setActiveSection] = useState<string | null>('appearance');
+  const [showResults, setShowResults] = useState<boolean>(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState<{ [key: string]: boolean }>({});
 
-  window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-  });
-
-  useEffect(() => {
-    const selectedRegion = regionOptions.find((r) => r.value === region);
-    if (selectedRegion) {
-      setAdultPopulation(selectedRegion.population * 0.76);
-    }
-  }, [region]);
-
+  // Initialize criteria state
   const [criteria, setCriteria] = useState<Criterion[]>([
     {
       name: 'Race/Ethnicity',
@@ -117,6 +115,24 @@ const CalculatorPage = () => {
       selected: null,
     },
     {
+      name: 'Body Type',
+      description: 'Body type distributions vary by gender, age, and ethnicity',
+      options: [],
+      maleOptions: [
+        { label: 'Any body type', value: 'any', percentage: 100 },
+        { label: 'Average weight', value: 'average', percentage: 28.7, description: '~28.7% of US men are normal/average weight', source: 'CDC, 2023' },
+        { label: 'Athletic/Fit', value: 'athletic', percentage: 19.2, description: '~19.2% of US men maintain an athletic/fit physique', source: 'Multiple fitness studies, 2023' },
+        { label: 'Very Athletic/Muscular', value: 'very-athletic', percentage: 4.3, description: 'Only ~4.3% of US men have very athletic/muscular builds', source: 'Fitness industry data, 2023' },
+      ],
+      femaleOptions: [
+        { label: 'Any body type', value: 'any', percentage: 100 },
+        { label: 'Average weight', value: 'average', percentage: 32.8, description: '~32.8% of US women are normal/average weight', source: 'CDC, 2023' },
+        { label: 'Athletic/Fit', value: 'athletic', percentage: 15.3, description: '~15.3% of US women maintain an athletic/fit physique', source: 'Multiple fitness studies, 2023' },
+        { label: 'Very Athletic/Toned', value: 'very-athletic', percentage: 3.2, description: 'Only ~3.2% of US women have very athletic/toned physiques', source: 'Fitness industry data, 2023' },
+      ],
+      selected: null,
+    },
+    {
       name: 'Income',
       description: 'Income distributions vary by gender, race, and region',
       options: [],
@@ -159,24 +175,6 @@ const CalculatorPage = () => {
         { label: "Bachelor's degree", value: 'bachelors', percentage: 37.1, description: "~37.1% of US women have a bachelor's degree", source: 'US Census Bureau, 2023' },
         { label: "Master's degree", value: 'masters', percentage: 15.6, description: "~15.6% of US women have a master's degree", source: 'US Census Bureau, 2023' },
         { label: 'Doctorate/Professional', value: 'doctorate', percentage: 4.2, description: '~4.2% of US women have a doctorate or professional degree', source: 'US Census Bureau, 2023' },
-      ],
-      selected: null,
-    },
-    {
-      name: 'Body Type',
-      description: 'Body type distributions vary by gender, age, and ethnicity',
-      options: [],
-      maleOptions: [
-        { label: 'Any body type', value: 'any', percentage: 100 },
-        { label: 'Average weight', value: 'average', percentage: 28.7, description: '~28.7% of US men are normal/average weight', source: 'CDC, 2023' },
-        { label: 'Athletic/Fit', value: 'athletic', percentage: 19.2, description: '~19.2% of US men maintain an athletic/fit physique', source: 'Multiple fitness studies, 2023' },
-        { label: 'Very Athletic/Muscular', value: 'very-athletic', percentage: 4.3, description: 'Only ~4.3% of US men have very athletic/muscular builds', source: 'Fitness industry data, 2023' },
-      ],
-      femaleOptions: [
-        { label: 'Any body type', value: 'any', percentage: 100 },
-        { label: 'Average weight', value: 'average', percentage: 32.8, description: '~32.8% of US women are normal/average weight', source: 'CDC, 2023' },
-        { label: 'Athletic/Fit', value: 'athletic', percentage: 15.3, description: '~15.3% of US women maintain an athletic/fit physique', source: 'Multiple fitness studies, 2023' },
-        { label: 'Very Athletic/Toned', value: 'very-athletic', percentage: 3.2, description: 'Only ~3.2% of US women have very athletic/toned physiques', source: 'Fitness industry data, 2023' },
       ],
       selected: null,
     },
@@ -247,14 +245,58 @@ const CalculatorPage = () => {
     },
   ]);
 
+  // Result states
   const [probability, setProbability] = useState<number>(100);
   const [peopleCount, setPeopleCount] = useState<number>(adultPopulation * 1000000);
   const [realDatingPoolSize, setRealDatingPoolSize] = useState<number>(0);
   const [delusion, setDelusion] = useState<string>('');
-  const [lookingForMale, setLookingForMale] = useState<boolean>(true);
   const [confidenceLevel, setConfidenceLevel] = useState<string>('moderate');
   const [marginOfError, setMarginOfError] = useState<number>(0);
+  
+  // Group criteria for better organization
+  const criteriaGroups = [
+    {
+      id: 'appearance',
+      name: 'Physical Appearance',
+      criteria: ['Race/Ethnicity', 'Height', 'Hair Color', 'Eye Color', 'Body Type', 'Age']
+    },
+    {
+      id: 'socioeconomic',
+      name: 'Socioeconomic Factors',
+      criteria: ['Income', 'Education', 'Location Type']
+    },
+    {
+      id: 'personal',
+      name: 'Personal Background',
+      criteria: ['Relationship History', 'Religion', 'Political Views']
+    }
+  ];
 
+  // Update adult population based on selected region
+  useEffect(() => {
+    const selectedRegion = regionOptions.find((r) => r.value === region);
+    if (selectedRegion) {
+      setAdultPopulation(selectedRegion.population * 0.76);
+    }
+  }, [region]);
+
+  // Update criteria options based on gender preference
+  useEffect(() => {
+    setCriteria((prevCriteria) =>
+      prevCriteria.map((criterion) => {
+        if (criterion.maleOptions && criterion.femaleOptions) {
+          return {
+            ...criterion,
+            options: lookingForMale ? criterion.maleOptions : criterion.femaleOptions,
+            selected: null,
+          };
+        }
+        return criterion;
+      })
+    );
+  }, [lookingForMale]);
+
+  // Calculate race correlations for traits
   const calculateRaceCorrelations = (race: string, trait: string, percentage: number): number => {
     if (race === 'any' || trait === 'any') return percentage;
 
@@ -502,21 +544,6 @@ const CalculatorPage = () => {
   };
 
   useEffect(() => {
-    setCriteria((prevCriteria) =>
-      prevCriteria.map((criterion) => {
-        if (criterion.maleOptions && criterion.femaleOptions) {
-          return {
-            ...criterion,
-            options: lookingForMale ? criterion.maleOptions : criterion.femaleOptions,
-            selected: null,
-          };
-        }
-        return criterion;
-      })
-    );
-  }, [lookingForMale]);
-
-  useEffect(() => {
     let totalProbability = 100;
     let adjustedConfidence = 'high';
     let factorCount = 0;
@@ -640,6 +667,7 @@ const CalculatorPage = () => {
     return `top ${Math.round(100 - probability)}%`;
   };
 
+  // Get confidence level color
   const getConfidenceLevelColor = () => {
     switch (confidenceLevel) {
       case 'high':
@@ -655,27 +683,63 @@ const CalculatorPage = () => {
     }
   };
 
+  const getDelusionColor = () => {
+    switch (delusion) {
+      case 'REALISTIC':
+        return 'text-green-400';
+      case 'DIFFICULT BUT POSSIBLE':
+        return 'text-teal-400';
+      case 'CHALLENGING':
+        return 'text-yellow-400';
+      case 'SOMEWHAT DELUSIONAL':
+        return 'text-amber-400';
+      case 'DELUSIONAL':
+        return 'text-orange-400';
+      case 'VERY DELUSIONAL':
+      case 'EXTREMELY DELUSIONAL':
+      case 'COMPLETELY DELUSIONAL':
+      case 'VIRTUALLY IMPOSSIBLE':
+        return 'text-red-400';
+      default:
+        return 'text-white';
+    }
+  };
+
+  const getSelectedCount = () => {
+    return criteria.filter(c => c.selected && c.selected !== 'any').length;
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setActiveSection(activeSection === sectionId ? null : sectionId);
+  };
+
+  const toggleInfoTooltip = (criterionName: string) => {
+    setShowInfoTooltip(prev => ({
+      ...prev,
+      [criterionName]: !prev[criterionName]
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white">
-
-        <Helmet>
-            <title>Dating Pool Reality Calculator | Demographic-Based Match Estimation</title>
-            <meta
-                name="description"
-                content="Estimate your dating pool with our calculator using 2023-2024 demographic data. Filter by race, height, income, and more to see your match percentage."
-            />
-            <meta
-                name="keywords"
-                content="dating calculator, demographic data, match estimation, dating pool, population percentage, race, height, income, education, body type, age, relationship history, religion, political views, location type"
-            />
-            <meta property="og:title" content="Dating Pool Reality Calculator" />
-            <meta
-                property="og:description"
-                content="Estimate your dating pool based on demographic data. Select criteria like race, height, income, and more to see your match percentage."
-            />
-            <meta property="og:type" content="website" />
-            <meta property="og:url" content="https://checkredflag.com/calculator" />
-            <meta property="og:image" content="https://checkredflag.com/og-image-calculator.jpg" />
+      <Helmet>
+        <title>Dating Pool Reality Calculator | Demographic-Based Match Estimation</title>
+        <meta
+          name="description"
+          content="Estimate your dating pool with our calculator using 2023-2024 demographic data. Filter by race, height, income, and more to see your match percentage."
+        />
+        <meta
+          name="keywords"
+          content="dating calculator, demographic data, match estimation, dating pool, population percentage, race, height, income, education, body type, age, relationship history, religion, political views, location type"
+        />
+        <meta property="og:title" content="Dating Pool Reality Calculator" />
+        <meta
+          property="og:description"
+          content="Estimate your dating pool based on demographic data. Select criteria like race, height, income, and more to see your match percentage."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://checkredflag.com/calculator" />
+        <meta property="og:image" content="https://checkredflag.com/og-image-calculator.jpg" />
 
         <script type="application/ld+json">
           {JSON.stringify({
@@ -693,228 +757,340 @@ const CalculatorPage = () => {
             }
           })}
         </script>
-        </Helmet>
+      </Helmet>
 
       <Header viewMode="edit" setViewMode={() => {}} />
 
-      <main className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-white mb-2">Dating Pool Reality Calculator</h1>
-            <p className="text-gray-400 mb-4">
-                Use our free Dating Pool Reality Calculator to estimate the percentage of the population that matches your dating preferences based on 2023-2024 demographic data. Select criteria such as race, height, income, education, and more to see how your choices shape your potential dating pool.
-            </p>
-            <p className="text-gray-400 mb-4">
-                This tool leverages data from trusted sources like the U.S. Census Bureau, CDC, and Pew Research Center, incorporating racial correlations and cross-trait adjustments for improved accuracy. Results are approximate and intended for informational purposes.
-            </p>
+      <main className="max-w-6xl mx-auto p-4 md:p-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent pb-2">
+            Dating Pool Reality Calculator
+          </h1>
+          <p className="text-gray-300 md:text-lg max-w-3xl mx-auto">
+            Find out what percentage of the population matches your dating preferences based on real demographic data.
+          </p>
         </div>
 
-        <div className="rounded-2xl overflow-hidden shadow-2xl mb-6 bg-gradient-to-r from-yellow-600/20 to-yellow-800/20 border border-yellow-500/30">
-          <div className="p-4 flex items-start gap-3">
-            <div className="flex-shrink-0 mt-1 text-yellow-300">⚠️</div>
-            <div className="w-full">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-yellow-300">Statistical Accuracy Disclaimer</h3>
-                <button
-                  onClick={() => setDisclaimerExpanded(!disclaimerExpanded)}
-                  className="text-xs px-2 py-1 rounded border border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
-                >
-                  {disclaimerExpanded ? 'Show Less' : 'Read More'}
-                </button>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Form container */}
+          <div className="w-full lg:w-3/5 space-y-6">
+            {/* Disclaimer */}
+            <div className="rounded-xl overflow-hidden shadow-md bg-gradient-to-r from-yellow-900/20 to-yellow-800/10 border border-yellow-700/30">
+              <div className="p-4 flex items-start gap-3">
+                <div className="flex-shrink-0 mt-1 text-yellow-300">
+                  <Info size={20} />
+                </div>
+                <div className="w-full">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-yellow-300">Statistical Accuracy Note</h3>
+                    <button
+                      onClick={() => setDisclaimerExpanded(!disclaimerExpanded)}
+                      className="text-xs px-2 py-1 rounded border border-yellow-500/30 bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
+                    >
+                      {disclaimerExpanded ? 'Show Less' : 'Read More'}
+                    </button>
+                  </div>
+                  <p className="text-gray-300 text-sm mt-1">
+                    Statistics are approximations with significant margins of error.
+                  </p>
+                  {disclaimerExpanded && (
+                    <div className="mt-3 space-y-2 text-xs text-gray-300 border-t border-gray-600 pt-3">
+                      <p>
+                        <span className="text-yellow-300 font-medium">Census Errors:</span> Official data typically has ±1-3% error margins.
+                      </p>
+                      <p>
+                        <span className="text-yellow-300 font-medium">Sample Limitations:</span> Many statistics come from studies with limited sample sizes.
+                      </p>
+                      <p>
+                        <span className="text-yellow-300 font-medium">Statistical Independence:</span> This calculator attempts to adjust for correlations between traits.
+                      </p>
+                      <p>
+                        <span className="text-yellow-300 font-medium">Regional Variations:</span> Statistics vary dramatically between geographic regions.
+                      </p>
+                      <p>
+                        <span className="text-yellow-300 font-medium">Purpose:</span> This calculator illustrates statistical rarity of trait combinations as rough estimates.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-gray-300 mt-1">
-                The statistics used in this calculator have significant limitations and should be considered approximations.
-              </p>
-              {disclaimerExpanded && (
-                <div className="mt-3 space-y-2 text-sm text-gray-300 border-t border-gray-600 pt-3">
-                  <p>
-                    <strong className="text-yellow-300">Census Error Margins:</strong> Official census data typically includes margins of error of ±1-3%. Recent demographic shifts may not be reflected in latest published data.
+            </div>
+
+            {/* Basic settings */}
+            <div className="p-5 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50 shadow-lg">
+              <div className="flex flex-col md:flex-row gap-4 md:items-center md:gap-6">
+                {/* Gender preference */}
+                <div className="flex-1">
+                  <h2 className="text-base font-medium mb-2 text-white">Gender Preference</h2>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => setLookingForMale(true)}
+                      className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${
+                        lookingForMale
+                          ? 'bg-blue-600/30 border-blue-500 text-blue-200'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      Looking for men
+                    </button>
+                    <button
+                      onClick={() => setLookingForMale(false)}
+                      className={`flex-1 px-3 py-2 rounded-lg border transition-colors ${
+                        !lookingForMale
+                          ? 'bg-pink-600/30 border-pink-500 text-pink-200'
+                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      Looking for women
+                    </button>
+                  </div>
+                </div>
+
+                {/* Region selection */}
+                <div className="flex-1">
+                  <h2 className="text-base font-medium mb-2 text-white">Region</h2>
+                  <select
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    {regionOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {region !== 'us' && (
+                    <p className="mt-2 text-yellow-300 text-xs">
+                      ⚠️ Non-US statistics have lower confidence levels
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {criteriaGroups.map((group) => (
+                <div key={group.id} className="rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleSection(group.id)}
+                    className={`w-full p-4 flex items-center justify-between text-left transition-colors ${
+                      activeSection === group.id
+                        ? 'bg-gradient-to-r from-indigo-900/60 to-purple-900/40 border-b border-gray-700/50'
+                        : 'bg-gradient-to-r from-gray-800 to-gray-900'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <h3 className="text-lg font-medium text-white">{group.name}</h3>
+                      {criteria
+                        .filter(c => group.criteria.includes(c.name) && c.selected && c.selected !== 'any')
+                        .length > 0 && (
+                        <span className="ml-3 px-2 py-0.5 text-xs rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-500/50">
+                          {criteria.filter(c => group.criteria.includes(c.name) && c.selected && c.selected !== 'any').length} selected
+                        </span>
+                      )}
+                    </div>
+                    {activeSection === group.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </button>
+
+                  {activeSection === group.id && (
+                    <div className="p-4 bg-gray-900/60 backdrop-blur-sm border border-gray-800 rounded-b-xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {criteria
+                          .filter((criterion) => group.criteria.includes(criterion.name))
+                          .map((criterion) => (
+                            <div
+                              key={criterion.name}
+                              className={`p-4 rounded-lg transition-all ${
+                                criterion.selected && criterion.selected !== 'any'
+                                  ? 'bg-indigo-900/20 border border-indigo-700/50'
+                                  : 'bg-gray-800/30 border border-gray-700/30 hover:border-gray-600/50'
+                              }`}
+                            >
+                              <label className="flex items-start justify-between mb-2">
+                                <span className="font-medium text-white">{criterion.name}</span>
+                                {criterion.description && (
+                                  <button
+                                    onClick={() => toggleInfoTooltip(criterion.name)}
+                                    className="text-gray-400 hover:text-gray-300"
+                                  >
+                                    <Info size={16} />
+                                  </button>
+                                )}
+                              </label>
+                              
+                              {showInfoTooltip[criterion.name] && (
+                                <div className="mb-3 p-2 text-xs bg-gray-800 rounded border border-gray-700 text-gray-300">
+                                  {criterion.description}
+                                </div>
+                              )}
+                              
+                              <select
+                                value={criterion.selected || ''}
+                                onChange={(e) => handleCriterionChange(criterion.name, e.target.value)}
+                                className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
+                              >
+                                <option value="">Select option</option>
+                                {criterion.options.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              
+                              {/* Selected option description */}
+                              {criterion.selected && criterion.selected !== 'any' && (
+                                <div className="mt-2 px-2 py-1 text-xs bg-gray-800/50 rounded text-gray-400">
+                                  {criterion.options.find((o) => o.value === criterion.selected)?.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 lg:hidden">
+              <button
+                onClick={resetSelections}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                <RefreshCw size={16} />
+                <span>Reset All</span>
+              </button>
+              <button
+                onClick={() => setShowResults(true)}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+              >
+                <Sliders size={16} />
+                <span>See Results</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Results panel (fixed on desktop, modal on mobile) */}
+          <div className={`
+            fixed inset-0 z-50 lg:static lg:z-auto
+            ${showResults ? 'flex' : 'hidden lg:flex'}
+            flex-col bg-gray-900/95 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none
+            lg:w-2/5 p-4 lg:p-0 overflow-auto
+          `}>
+            {/* Mobile close button */}
+            <button 
+              onClick={() => setShowResults(false)}
+              className="self-end p-2 lg:hidden text-gray-400 hover:text-white"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="p-6 bg-gradient-to-br from-gray-800/80 to-gray-900/90 rounded-xl border border-gray-700/50 shadow-lg sticky top-4">
+              <h2 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                Results
+                {getSelectedCount() > 0 && (
+                  <span className="text-sm font-normal text-gray-400">
+                    ({getSelectedCount()} criteria selected)
+                  </span>
+                )}
+              </h2>
+
+              <div className={`text-3xl font-bold mb-4 ${getDelusionColor()}`}>
+                {delusion}
+              </div>
+
+              <div className="space-y-4 mt-6">
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  <p className="text-gray-400 text-sm mb-1">Matching population</p>
+                  <p className="text-2xl font-bold text-white">
+                    {probability < 0.00001 ? '< 0.00001' : probability.toFixed(6)}%
                   </p>
-                  <p>
-                    <strong className="text-yellow-300">Sample Size Limitations:</strong> Many demographic statistics are derived from studies with limited sample sizes that may not fully represent the entire population.
+                  {calculateTopPercentile() && (
+                    <p className="text-sm text-gray-300 mt-1">
+                      You're looking for someone in the{' '}
+                      <span className="font-semibold text-pink-300">{calculateTopPercentile()}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  <p className="text-gray-400 text-sm mb-1">Approximate number of people</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatNumber(peopleCount)}
                   </p>
-                  <p>
-                    <strong className="text-yellow-300">Statistical Independence:</strong> This calculator assumes traits are statistically independent (e.g., height isn’t correlated with ethnicity), which is often not the case in real populations.
+                  <p className="text-sm text-gray-300 mt-1">
+                    in {region === 'us' ? 'the U.S.' : 'your selected region'}
                   </p>
-                  <p>
-                    <strong className="text-yellow-300">Regional Variations:</strong> Statistics can vary dramatically between geographic regions, even within the same country.
+                </div>
+
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  <p className="text-gray-400 text-sm mb-1">Estimated dating pool</p>
+                  <p className="text-2xl font-bold text-white">
+                    {formatNumber(realDatingPoolSize)}
                   </p>
-                  <p>
-                    <strong className="text-yellow-300">Self-Reporting Biases:</strong> Some data relies on self-reported information (e.g., income, body type) which may contain inherent biases.
+                  <p className="text-sm text-gray-300 mt-1">
+                    after accounting for relationship status
                   </p>
-                  <p>
-                    <strong className="text-yellow-300">Purpose:</strong> This calculator is intended to illustrate the statistical rarity of specific combinations of traits, not to provide precise scientific measurements. Results should be interpreted as rough estimates.
+                </div>
+
+                <div className="p-3 bg-gray-800/30 rounded-lg border border-gray-700/50 text-center">
+                  <span className="text-gray-400 text-sm mr-2">Statistical confidence:</span>
+                  <span className={`font-medium ${getConfidenceLevelColor()}`}>
+                    {confidenceLevel.toUpperCase()}
+                  </span>
+                  <span className="text-gray-400 text-sm ml-2">
+                    (±{Math.round(marginOfError * 100)}%)
+                  </span>
+                </div>
+              </div>
+
+              {/* Warning messages */}
+              {peopleCount < 10000 && (
+                <div className="mt-4 p-3 bg-yellow-900/20 rounded-lg border border-yellow-700/30">
+                  <p className="text-yellow-300 text-sm">
+                    ⚠️ The pool of people matching your criteria is extremely small.
                   </p>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
 
-        <div className="mb-6 p-4 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50">
-          <h2 className="text-lg font-semibold mb-2 text-white">Geographic Region</h2>
-          <select
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
-          >
-            {regionOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {region !== 'us' && (
-            <p className="mt-2 text-yellow-300 text-sm">
-              ⚠️ Non-US statistics include region-specific adjustments with lower confidence levels.
-            </p>
-          )}
-        </div>
-
-        <div className="mb-6 p-4 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl border border-gray-700/50">
-          <h2 className="text-lg font-semibold mb-2 text-white">Gender Preference</h2>
-          <div className="flex items-center space-x-4">
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="radio"
-                checked={lookingForMale}
-                onChange={() => setLookingForMale(true)}
-                className="form-radio h-5 w-5 text-blue-500"
-                name="gender"
-              />
-              <span className="ml-2 text-gray-300">Looking for men</span>
-            </label>
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="radio"
-                checked={!lookingForMale}
-                onChange={() => setLookingForMale(false)}
-                className="form-radio h-5 w-5 text-pink-500"
-                name="gender"
-              />
-              <span className="ml-2 text-gray-300">Looking for women</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {criteria.map((criterion) => (
-            <div
-                key={criterion.name}
-                className="p-4 bg-gradient-to-br from-gray-800/60 to-gray-800/30 rounded-xl border border-gray-700/50"
-            >
-                <label
-                htmlFor={criterion.name}
-                className="text-lg font-semibold mb-2 text-white flex items-center justify-between"
-                >
-                {criterion.name}
-                {criterion.description && (
-                    <span className="text-xs text-gray-400 italic ml-2">{criterion.description}</span>
-                )}
-                </label>
-                <select
-                id={criterion.name}
-                value={criterion.selected || ''}
-                onChange={(e) => handleCriterionChange(criterion.name, e.target.value)}
-                className="w-full p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                >
-                <option value="">Select a preference</option>
-                {criterion.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                    {option.label}
-                    </option>
-                ))}
-                </select>
-                {criterion.selected && criterion.selected !== 'any' && (
-                <div className="mt-2 text-sm text-gray-400">
-                    {criterion.options.find((o) => o.value === criterion.selected)?.description}
+              {probability < 0.0001 && (
+                <div className="mt-3 p-3 bg-red-900/20 rounded-lg border border-red-700/30">
+                  <p className="text-red-300 text-sm">
+                    ⚠️ Your criteria are so restrictive that a match is statistically improbable.
+                  </p>
                 </div>
-                )}
+              )}
+
+              <div className="flex items-center justify-between mt-6">
+                <button
+                  onClick={resetSelections}
+                  className="flex items-center gap-1 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+                >
+                  <RefreshCw size={14} />
+                  <span>Reset All</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowResults(false)}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition-colors lg:hidden"
+                >
+                  Back to Calculator
+                </button>
+              </div>
             </div>
-            ))}
+          </div>
         </div>
 
-        <div className="mb-6 p-6 bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-2xl shadow-xl border border-gray-700/50 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-white">Results</h2>
-          <div
-            className={`text-3xl font-bold mb-4 ${
-              delusion === 'REALISTIC'
-                ? 'text-green-400'
-                : delusion === 'DIFFICULT BUT POSSIBLE'
-                ? 'text-yellow-400'
-                : delusion === 'CHALLENGING'
-                ? 'text-orange-400'
-                : 'text-red-400'
-            }`}
-          >
-            {delusion}
-          </div>
-          <div className="mb-4">
-            <p className="text-gray-300">
-              Only{' '}
-              <span className="font-bold text-blue-300">
-                {probability < 0.00001 ? '< 0.00001' : probability.toFixed(6)}%
-              </span>{' '}
-              of the population matches all your criteria
-            </p>
-            {calculateTopPercentile() && (
-              <p className="text-gray-300 mt-1">
-                You’re looking for someone in the{' '}
-                <span className="font-bold text-pink-300">{calculateTopPercentile()}</span> of people
-              </p>
-            )}
-            <p className="text-gray-300 mt-1">
-              That’s approximately{' '}
-              <span className="font-bold text-green-300">{formatNumber(peopleCount)}</span> people in{' '}
-              {region === 'us' ? 'the U.S.' : 'your selected region'}
-            </p>
-            <p className="text-gray-300 mt-1">
-              Accounting for people already in relationships, your actual dating pool is roughly{' '}
-              <span className="font-bold text-amber-300">{formatNumber(realDatingPoolSize)}</span> people
-            </p>
-            <div className="mt-3 text-xs">
-              <span className="text-gray-400">Statistical confidence level: </span>
-              <span className={`font-medium ${getConfidenceLevelColor()}`}>{confidenceLevel.toUpperCase()}</span>
-              <span className="text-gray-400 ml-2">(Estimated margin of error: ±{Math.round(marginOfError * 100)}%)</span>
-            </div>
-            {peopleCount < 10000 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-yellow-600/20 to-yellow-800/20 rounded-xl border border-yellow-500/30">
-                <p className="text-yellow-300">
-                  ⚠️ The pool of people matching your criteria is extremely small.
-                </p>
-                <p className="text-yellow-300 mt-1 text-sm">
-                  Given geographic limitations, mutual attraction, and other factors, finding a compatible match with these exact criteria would be challenging.
-                </p>
-              </div>
-            )}
-            {probability < 0.0001 && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-red-600/20 to-red-800/20 rounded-xl border border-red-500/30">
-                <p className="text-red-300">
-                  ⚠️ Your criteria are so restrictive that a match is statistically improbable.
-                </p>
-                <p className="text-red-300 mt-1 text-sm">
-                  If you applied these criteria globally to the 8 billion people on Earth, there would be approximately{' '}
-                  {formatNumber((probability / 100) * 8000 * 1000000 * 0.76)} people who match, with most already in relationships.
-                </p>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={resetSelections}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300"
-          >
-            Reset All
-          </button>
-        </div>
-
-        <div className="text-sm text-gray-400 text-center">
-          <p className="mb-1">Based on 2023-2024 demographic data from Census Bureau, CDC, Pew Research, and other sources.</p>
-          <p className="italic text-gray-500">
-            Note: This calculator includes racial correlations and cross-trait adjustments for more accuracy, but remains an approximation.
+        <div className="text-xs text-gray-400 text-center mt-8 max-w-2xl mx-auto">
+          <p>Based on 2023-2024 demographic data from Census Bureau, CDC, Pew Research, and other sources.</p>
+          <p className="mt-1 text-gray-500">
+            This calculator includes racial correlations and cross-trait adjustments for improved accuracy, but remains an approximation.
           </p>
         </div>
       </main>
-    <Footer />
 
+        <Footer />
     </div>
   );
 };

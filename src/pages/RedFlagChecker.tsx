@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { 
   relationshipTraits,
@@ -16,6 +16,8 @@ import ProfileModal from '../components/modals/ProfileModal';
 import CustomFlagModal from '../components/modals/CustomFlagModal';
 import ShareModal from '../components/modals/ShareModal';
 import { CustomTraitDefinition } from '../components/RelationshipAssessment';
+import { X, User, Share2, Download, Plus, Trash, RefreshCw } from 'lucide-react';
+import FloatingActionButton from '../components/FloatingActionButton';
 
 export interface CustomTraitsState {
   [category: string]: CustomTraitDefinition[];
@@ -26,16 +28,15 @@ export interface CustomTraitHandlers {
   deleteCustomTrait: (category: string, traitName: string) => void;
 }
 
-  declare global {
-    interface Window {
-      domtoimage: {
-        toPng: (node: HTMLElement, options?: any) => Promise<string>;
-        toJpeg: (node: HTMLElement, options?: any) => Promise<string>;
-        toSvg: (node: HTMLElement, options?: any) => Promise<string>;
-      };
-    }
+declare global {
+  interface Window {
+    domtoimage: {
+      toPng: (node: HTMLElement, options?: any) => Promise<string>;
+      toJpeg: (node: HTMLElement, options?: any) => Promise<string>;
+      toSvg: (node: HTMLElement, options?: any) => Promise<string>;
+    };
   }
-
+}
 
 const RedFlagApp = () => {
   const resultCardRef = useRef<HTMLDivElement>(null);
@@ -54,11 +55,25 @@ const RedFlagApp = () => {
   const [shareableLink, setShareableLink] = useState<string>('');
   const [viewMode, setViewMode] = useState<'edit' | 'shared'>('edit');
   const [customTraits, setCustomTraits] = useState<Record<string, CustomTraitDefinition[]>>({});
+  const [showMobileSidebar, setShowMobileSidebar] = useState<boolean>(false);
+  const [isMobileView, setIsMobileView] = useState<boolean>(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setShowMobileSidebar(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
-});
+  });
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -106,7 +121,7 @@ const RedFlagApp = () => {
     }
   }, [profiles, viewMode]);
 
-  const handleTraitChange = (traitId: string, value: string) => {
+  const handleTraitChange = useCallback((traitId: string, value: string) => {
     if (viewMode === 'shared') return; 
     
     setTraitSelections(prev => ({
@@ -121,7 +136,7 @@ const RedFlagApp = () => {
         [traitId]: value
       },
     }));
-  };
+  }, [viewMode, currentProfile]);;
 
   const resetSelections = () => {
     if (viewMode === 'shared') return;
@@ -193,7 +208,7 @@ const RedFlagApp = () => {
     setTraitSelections(newProfiles['Default'] || {});
   };
 
-  const generateShareableLink = () => {
+  const generateShareableLink = useCallback(() => {
     try {
       const shareData = {
         s: traitSelections,
@@ -212,7 +227,7 @@ const RedFlagApp = () => {
       console.error('Error generating shareable link:', error);
       alert('Could not generate shareable link. Please try again.');
     }
-  };
+  }, [traitSelections, profileName]);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareableLink).then(() => {
@@ -230,87 +245,138 @@ const RedFlagApp = () => {
       loadingToast.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
       document.body.appendChild(loadingToast);
       
-      if (typeof window.domtoimage === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
-        script.async = true;
-        
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-        
-        if (!window.domtoimage) {
-          throw new Error('Failed to load dom-to-image library');
-        }
-      }
-      
-      const resultCard = resultCardRef.current;
-      const originalStyleBgColor = resultCard.style.backgroundColor;
-      const originalStylePadding = resultCard.style.padding;
-      
-      resultCard.style.backgroundColor = '#1f2937';
-      resultCard.style.padding = '12px';
-      
-      const dataUrl = await window.domtoimage.toPng(resultCard, {
-        bgcolor: '#1f2937',
-        height: resultCard.offsetHeight,
-        width: resultCard.offsetWidth,
-        style: {
-          padding: '12px',
-          'border-radius': '12px',
-        }
-      });
-      
-      resultCard.style.backgroundColor = originalStyleBgColor;
-      resultCard.style.padding = originalStylePadding;
-      
-      const downloadLink = document.createElement('a');
-      downloadLink.href = dataUrl;
-      downloadLink.download = `${profileName.replace(/\s+/g, '-').toLowerCase()}-relationship-assessment-${new Date().toISOString().slice(0,10)}.png`;
-      
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      
-      document.body.removeChild(loadingToast);
-      const successToast = document.createElement('div');
-      successToast.innerText = 'Image downloaded successfully!';
-      successToast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      document.body.appendChild(successToast);
-      
-      setTimeout(() => {
-        document.body.removeChild(successToast);
-      }, 3000);
-      
     } catch (error) {
       console.error('Error generating image:', error);
       
-      try {
-        const loadingToast = document.querySelector('.fixed.bottom-4.right-4.bg-blue-600');
-        if (loadingToast && loadingToast.parentNode) {
-          loadingToast.parentNode.removeChild(loadingToast);
-        }
-      } catch (e) {
-      }
-      
-      const errorToast = document.createElement('div');
-      errorToast.innerText = 'Failed to generate image. Please try again.';
-      errorToast.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      document.body.appendChild(errorToast);
-      
-      setTimeout(() => {
-        document.body.removeChild(errorToast);
-      }, 3000);
     }
   };
-  
 
   const { redScore, greenScore, netScore } = calculateRelationshipScore(traitSelections);
   const { level: riskLevel, message: _, color: riskColor } = calculateRiskLevel(redScore);
   const ratedTraitsCount = Object.keys(traitSelections).length;
   const totalTraitsCount = Object.values(relationshipTraits).reduce((sum, traits) => sum + traits.length, 0);
+
+  const renderMobileSidebar = () => {
+    if (!showMobileSidebar || !isMobileView) return null;
+    
+    return (
+      <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={() => setShowMobileSidebar(false)}>
+        <div 
+          className="absolute right-0 top-0 h-full w-4/5 max-w-xs bg-gray-900 p-4 overflow-y-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white">Profile Options</h3>
+            <button onClick={() => setShowMobileSidebar(false)}>
+              <X size={24} className="text-gray-400 hover:text-white" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-800 rounded-lg">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Current Profile
+              </label>
+              <select
+                value={currentProfile}
+                onChange={(e) => {
+                  setCurrentProfile(e.target.value);
+                  setProfileName(e.target.value);
+                  setTraitSelections(profiles[e.target.value] || {});
+                }}
+                className="w-full p-2 bg-gray-700 text-white rounded-md"
+              >
+                {Object.keys(profiles).map(profile => (
+                  <option key={profile} value={profile}>{profile}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex flex-col items-center justify-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700"
+              >
+                <User size={20} className="mb-1 text-blue-400" />
+                <span className="text-xs text-gray-300">New Profile</span>
+              </button>
+              
+              <button
+                onClick={deleteCurrentProfile}
+                disabled={currentProfile === 'Default'}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg ${
+                  currentProfile === 'Default' ? 'bg-gray-800 opacity-50' : 'bg-gray-800 hover:bg-gray-700'
+                }`}
+              >
+                <Trash size={20} className="mb-1 text-red-400" />
+                <span className="text-xs text-gray-300">Delete</span>
+              </button>
+              
+              <button
+                onClick={() => setShowCustomTraitModal(true)}
+                className="flex flex-col items-center justify-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700"
+              >
+                <Plus size={20} className="mb-1 text-green-400" />
+                <span className="text-xs text-gray-300">Add Trait</span>
+              </button>
+              
+              <button
+                onClick={resetSelections}
+                className="flex flex-col items-center justify-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700"
+              >
+                <RefreshCw size={20} className="mb-1 text-yellow-400" />
+                <span className="text-xs text-gray-300">Reset</span>
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={generateShareableLink}
+                className="flex flex-col items-center justify-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700"
+              >
+                <Share2 size={20} className="mb-1 text-pink-400" />
+                <span className="text-xs text-gray-300">Share Link</span>
+              </button>
+              
+              <button
+                onClick={downloadAsImage}
+                className="flex flex-col items-center justify-center p-3 bg-gray-800 rounded-lg hover:bg-gray-700"
+              >
+                <Download size={20} className="mb-1 text-purple-400" />
+                <span className="text-xs text-gray-300">Download</span>
+              </button>
+            </div>
+            
+            <div className="p-4 bg-gray-800 rounded-lg">
+              <h3 className="font-bold text-lg text-white mb-2">Assessment Summary</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Red Flags:</span>
+                  <span className="text-red-400">{redScore}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Green Flags:</span>
+                  <span className="text-green-400">{greenScore}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Net Score:</span>
+                  <span className={netScore >= 0 ? "text-green-400" : "text-red-400"}>{netScore}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Risk Level:</span>
+                  <span className={`text-${riskColor}-400`}>{riskLevel}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Traits Rated:</span>
+                  <span className="text-blue-400">{ratedTraitsCount}/{totalTraitsCount}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800 text-white">
@@ -328,39 +394,12 @@ const RedFlagApp = () => {
               : 'Use our free tool to assess potential red flags and green flags in your relationship. Get instant results and insights.'
           }
         />
-        {viewMode === 'shared' && (
-          <>
-            <meta property="og:title" content={`Relationship Assessment Results for ${profileName}`} />
-            <meta
-              property="og:description"
-              content={`Check out the relationship assessment results for ${profileName}. See the red flags and green flags identified.`}
-            />
-            <meta property="og:type" content="website" />
-            <meta property="og:url" content={window.location.href} />
-          </>
-        )}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebApplication",
-            "name": "Relationship Red Flag Checker",
-            "description": "A tool to assess potential red flags and green flags in relationships.",
-            "url": "https://checkredflag.com",
-            "applicationCategory": "Lifestyle",
-            "operatingSystem": "Web",
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "USD"
-            }
-          })}
-        </script>
       </Helmet>
       <Header viewMode={viewMode} setViewMode={setViewMode} />
 
       <main className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
         <div className="flex flex-col md:flex-row gap-6">
-          {viewMode === 'edit' && (
+          {viewMode === 'edit' && !isMobileView && (
             <ProfileSidebar 
               profileName={profileName}
               setProfileName={setProfileName}
@@ -384,7 +423,7 @@ const RedFlagApp = () => {
             />
           )}
           
-          <div className={viewMode === 'edit' ? "md:w-3/4" : "w-full"}>
+          <div className={viewMode === 'edit' && !isMobileView ? "md:w-3/4" : "w-full"}>
             {viewMode === 'shared' && (
               <SharedBanner 
                 profileName={profileName}
@@ -392,7 +431,9 @@ const RedFlagApp = () => {
               />
             )}
             
-            <TraitProgress selections={traitSelections} />
+            {(!isMobileView || viewMode === 'shared') && (
+              <TraitProgress selections={traitSelections} />
+            )}
             
             <div className="grid grid-cols-1 gap-6">
               <RelationshipAssessment 
@@ -409,7 +450,19 @@ const RedFlagApp = () => {
           </div>
         </div>
       </main>
+            
+      {renderMobileSidebar()}
       
+      {viewMode === 'edit' && (
+        <FloatingActionButton 
+          onAddProfile={() => setShowProfileModal(true)}
+          onAddTrait={() => setShowCustomTraitModal(true)}
+          onShare={generateShareableLink}
+          onDownload={downloadAsImage}
+          onReset={resetSelections}
+        />
+      )}
+
       {showProfileModal && (
         <ProfileModal 
           newProfileName={newProfileName}
